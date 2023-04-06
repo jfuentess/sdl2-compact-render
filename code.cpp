@@ -8,7 +8,6 @@
 #include <windows.h>
 #include <conio.h>
 #include <bitset>
-#include <thread>
 
 #define WIDTH 1600
 #define HEIGHT 900
@@ -159,8 +158,6 @@ int size = 256;
 int*** data;
 vec3 bounding_box_start;
 vec3 bounding_box_end;
-
-HANDLE ghMutex; 
 
 // math
 vec3 world_up = vec3(0, 1, 0);
@@ -345,398 +342,23 @@ void compute_raycast()
 					if(i == width_pixels / 2 && j == height_pixels / 2)
 						front_voxel.set((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
 
-					SDL_SetRenderDrawColor(renderer,
-						max(0, (int) (colors[voxel - 1].r - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].g - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].b - total_dist * 10)),
-						SDL_ALPHA_OPAQUE);
-
 					//SDL_SetRenderDrawColor(renderer,
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
+					//	max(0, (int) (colors[voxel - 1].r - total_dist * 10)),
+					//	max(0, (int) (colors[voxel - 1].g - total_dist * 10)),
+					//	max(0, (int) (colors[voxel - 1].b - total_dist * 10)),
 					//	SDL_ALPHA_OPAQUE);
+
+					SDL_SetRenderDrawColor(renderer,
+						min(255, max(0, (int) (total_dist * 20))),
+						min(255, max(0, (int) (total_dist * 20))),
+						min(255, max(0, (int) (total_dist * 20))),
+						SDL_ALPHA_OPAQUE);
 
 					SDL_RenderDrawPoint(renderer, i, (height_pixels - 1 - j));
 					break;
 				}
 			}
 		}
-	}
-}
-
-void compute_raycast0()
-{
-	int end = height_pixels / 3;
-	for (int i = 0; i < width_pixels; ++i)
-	{
-		for (int j = 0; j < end; ++j)
-		{
-			vec3 right_offset = vec3(camera_right);
-			right_offset *= ((i - width_pixels / 2.0) / width_pixels) * 2.0;
-
-			vec3 up_offset = vec3(camera_up);
-			up_offset *= ((j - height_pixels / 2.0) / width_pixels) * 2.0;
-
-			vec3 current_dir = vec3(camera_forward + right_offset + up_offset);
-			current_dir += right_offset;
-			current_dir += up_offset;
-
-			vec3 step = vec3();
-			vec3 deltaT = vec3();
-			vec3 distance = vec3();
-
-			if(current_dir.x != 0)
-			{
-				step.x = current_dir.x < 0 ? -1 : 1;
-				deltaT.x = abs(1.0 / current_dir.x);
-				distance.x = step.x < 0 ? (floor(camera_pos.x) - camera_pos.x) / current_dir.x : (ceil(camera_pos.x) - camera_pos.x) / current_dir.x;
-			}
-			else
-			{
-				deltaT.x = 99999;
-				distance.x = 99999;
-			}
-
-			if(current_dir.y != 0){
-				step.y = current_dir.y < 0 ? -1 : 1;
-				deltaT.y = abs(1.0 / current_dir.y);
-				distance.y = step.y < 0 ? (floor(camera_pos.y) - camera_pos.y) / current_dir.y : (ceil(camera_pos.y) - camera_pos.y) / current_dir.y;
-			}
-			else
-			{
-				deltaT.y = 99999;
-				distance.y = 99999;
-			}
-
-			if(current_dir.z != 0){
-				step.z = current_dir.z < 0 ? -1 : 1;
-				deltaT.z = abs(1.0 / current_dir.z);
-				distance.z = step.z < 0 ? (floor(camera_pos.z) - camera_pos.z) / current_dir.z : (ceil(camera_pos.z) - camera_pos.z) / current_dir.z;
-			}
-			else
-			{
-				deltaT.z = 99999;
-				distance.z = 99999;
-			}
-
-			vec3 current_voxel = vec3(camera_pos);
-			current_voxel += 0.5;
-			current_voxel.round();
-
-			vec3 voxel_incr = vec3();
-
-			while(current_voxel.x > bounding_box_start.x && current_voxel.y > bounding_box_start.y && current_voxel.z > bounding_box_start.z &&
-				current_voxel.x < bounding_box_end.x && current_voxel.y < bounding_box_end.y && current_voxel.z < bounding_box_end.z)
-			{
-				double total_dist = 9999;
-				if(distance.x < total_dist)
-					total_dist = distance.x;
-				if(distance.y < total_dist)
-					total_dist = distance.y;
-				if(distance.z < total_dist)
-					total_dist = distance.z;
-
-				//adjacent_voxel = vec3(-step.x, -step.y, -step.z);
-
-				voxel_incr.x = (distance.x <= distance.y) && (distance.x <= distance.z);
-				voxel_incr.y = (distance.y <= distance.x) && (distance.y <= distance.z);
-				voxel_incr.z = (distance.z <= distance.x) && (distance.z <= distance.y);
-
-				distance.x += voxel_incr.x * deltaT.x;
-				distance.y += voxel_incr.y * deltaT.y;
-				distance.z += voxel_incr.z * deltaT.z;
-
-				current_voxel.x += voxel_incr.x * step.x;
-				current_voxel.y += voxel_incr.y * step.y;
-				current_voxel.z += voxel_incr.z * step.z;
-
-				if(current_voxel.x <= bounding_box_start.x || current_voxel.y <= bounding_box_start.y || current_voxel.z <= bounding_box_start.z ||
-				current_voxel.x >= bounding_box_end.x || current_voxel.y >= bounding_box_end.y || current_voxel.z >= bounding_box_end.z)
-					break;
-
-				int voxel = get_voxel((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
-				if(voxel > 0)
-				{
-					if(i == width_pixels / 2 && j == height_pixels / 2)
-						front_voxel.set((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
-
-					WaitForSingleObject(
-						ghMutex,		// handle to mutex
-						INFINITE		// no time-out interval
-						);
-
-					SDL_SetRenderDrawColor(renderer,
-						max(0, (int) (colors[voxel - 1].r - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].g - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].b - total_dist * 10)),
-						SDL_ALPHA_OPAQUE);
-
-					//SDL_SetRenderDrawColor(renderer,
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	SDL_ALPHA_OPAQUE);
-
-					SDL_RenderDrawPoint(renderer, i, (height_pixels - 1 - j));
-					ReleaseMutex(ghMutex);
-					break;
-				}
-			}
-		}
-	}
-}
-
-void compute_raycast1()
-{
-	int end = height_pixels / 3 * 2;
-	for (int i = 0; i < width_pixels; ++i)
-	{
-		for (int j = height_pixels / 3; j < end; ++j)
-		{
-			vec3 right_offset = vec3(camera_right);
-			right_offset *= ((i - width_pixels / 2.0) / width_pixels) * 2.0;
-
-			vec3 up_offset = vec3(camera_up);
-			up_offset *= ((j - height_pixels / 2.0) / width_pixels) * 2.0;
-
-			vec3 current_dir = vec3(camera_forward + right_offset + up_offset);
-			current_dir += right_offset;
-			current_dir += up_offset;
-
-			vec3 step = vec3();
-			vec3 deltaT = vec3();
-			vec3 distance = vec3();
-
-			if(current_dir.x != 0)
-			{
-				step.x = current_dir.x < 0 ? -1 : 1;
-				deltaT.x = abs(1.0 / current_dir.x);
-				distance.x = step.x < 0 ? (floor(camera_pos.x) - camera_pos.x) / current_dir.x : (ceil(camera_pos.x) - camera_pos.x) / current_dir.x;
-			}
-			else
-			{
-				deltaT.x = 99999;
-				distance.x = 99999;
-			}
-
-			if(current_dir.y != 0){
-				step.y = current_dir.y < 0 ? -1 : 1;
-				deltaT.y = abs(1.0 / current_dir.y);
-				distance.y = step.y < 0 ? (floor(camera_pos.y) - camera_pos.y) / current_dir.y : (ceil(camera_pos.y) - camera_pos.y) / current_dir.y;
-			}
-			else
-			{
-				deltaT.y = 99999;
-				distance.y = 99999;
-			}
-
-			if(current_dir.z != 0){
-				step.z = current_dir.z < 0 ? -1 : 1;
-				deltaT.z = abs(1.0 / current_dir.z);
-				distance.z = step.z < 0 ? (floor(camera_pos.z) - camera_pos.z) / current_dir.z : (ceil(camera_pos.z) - camera_pos.z) / current_dir.z;
-			}
-			else
-			{
-				deltaT.z = 99999;
-				distance.z = 99999;
-			}
-
-			vec3 current_voxel = vec3(camera_pos);
-			current_voxel += 0.5;
-			current_voxel.round();
-
-			vec3 voxel_incr = vec3();
-
-			while(current_voxel.x > bounding_box_start.x && current_voxel.y > bounding_box_start.y && current_voxel.z > bounding_box_start.z &&
-				current_voxel.x < bounding_box_end.x && current_voxel.y < bounding_box_end.y && current_voxel.z < bounding_box_end.z)
-			{
-				double total_dist = 9999;
-				if(distance.x < total_dist)
-					total_dist = distance.x;
-				if(distance.y < total_dist)
-					total_dist = distance.y;
-				if(distance.z < total_dist)
-					total_dist = distance.z;
-
-				adjacent_voxel = vec3(-step.x, -step.y, -step.z);
-
-				voxel_incr.x = (distance.x <= distance.y) && (distance.x <= distance.z);
-				voxel_incr.y = (distance.y <= distance.x) && (distance.y <= distance.z);
-				voxel_incr.z = (distance.z <= distance.x) && (distance.z <= distance.y);
-
-				distance.x += voxel_incr.x * deltaT.x;
-				distance.y += voxel_incr.y * deltaT.y;
-				distance.z += voxel_incr.z * deltaT.z;
-
-				current_voxel.x += voxel_incr.x * step.x;
-				current_voxel.y += voxel_incr.y * step.y;
-				current_voxel.z += voxel_incr.z * step.z;
-
-				if(current_voxel.x <= bounding_box_start.x || current_voxel.y <= bounding_box_start.y || current_voxel.z <= bounding_box_start.z ||
-				current_voxel.x >= bounding_box_end.x || current_voxel.y >= bounding_box_end.y || current_voxel.z >= bounding_box_end.z)
-					break;
-
-				int voxel = get_voxel((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
-				if(voxel > 0)
-				{
-					if(i == width_pixels / 2 && j == height_pixels / 2)
-						front_voxel.set((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
-
-					WaitForSingleObject(
-						ghMutex,		// handle to mutex
-						INFINITE		// no time-out interval
-						);
-
-					SDL_SetRenderDrawColor(renderer,
-						max(0, (int) (colors[voxel - 1].r - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].g - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].b - total_dist * 10)),
-						SDL_ALPHA_OPAQUE);
-
-					//SDL_SetRenderDrawColor(renderer,
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	SDL_ALPHA_OPAQUE);
-
-					SDL_RenderDrawPoint(renderer, i, (height_pixels - 1 - j));
-					ReleaseMutex(ghMutex);
-					break;
-				}
-			}
-		}
-	}
-}
-
-void compute_raycast2()
-{
-	int end = height_pixels / 3 * 3;
-	for (int i = 0; i < width_pixels; ++i)
-	{
-		for (int j = height_pixels / 3 * 2; j < end; ++j)
-		{
-			vec3 right_offset = vec3(camera_right);
-			right_offset *= ((i - width_pixels / 2.0) / width_pixels) * 2.0;
-
-			vec3 up_offset = vec3(camera_up);
-			up_offset *= ((j - height_pixels / 2.0) / width_pixels) * 2.0;
-
-			vec3 current_dir = vec3(camera_forward + right_offset + up_offset);
-			current_dir += right_offset;
-			current_dir += up_offset;
-
-			vec3 step = vec3();
-			vec3 deltaT = vec3();
-			vec3 distance = vec3();
-
-			if(current_dir.x != 0)
-			{
-				step.x = current_dir.x < 0 ? -1 : 1;
-				deltaT.x = abs(1.0 / current_dir.x);
-				distance.x = step.x < 0 ? (floor(camera_pos.x) - camera_pos.x) / current_dir.x : (ceil(camera_pos.x) - camera_pos.x) / current_dir.x;
-			}
-			else
-			{
-				deltaT.x = 99999;
-				distance.x = 99999;
-			}
-
-			if(current_dir.y != 0){
-				step.y = current_dir.y < 0 ? -1 : 1;
-				deltaT.y = abs(1.0 / current_dir.y);
-				distance.y = step.y < 0 ? (floor(camera_pos.y) - camera_pos.y) / current_dir.y : (ceil(camera_pos.y) - camera_pos.y) / current_dir.y;
-			}
-			else
-			{
-				deltaT.y = 99999;
-				distance.y = 99999;
-			}
-
-			if(current_dir.z != 0){
-				step.z = current_dir.z < 0 ? -1 : 1;
-				deltaT.z = abs(1.0 / current_dir.z);
-				distance.z = step.z < 0 ? (floor(camera_pos.z) - camera_pos.z) / current_dir.z : (ceil(camera_pos.z) - camera_pos.z) / current_dir.z;
-			}
-			else
-			{
-				deltaT.z = 99999;
-				distance.z = 99999;
-			}
-
-			vec3 current_voxel = vec3(camera_pos);
-			current_voxel += 0.5;
-			current_voxel.round();
-
-			vec3 voxel_incr = vec3();
-
-			while(current_voxel.x > bounding_box_start.x && current_voxel.y > bounding_box_start.y && current_voxel.z > bounding_box_start.z &&
-				current_voxel.x < bounding_box_end.x && current_voxel.y < bounding_box_end.y && current_voxel.z < bounding_box_end.z)
-			{
-				double total_dist = 9999;
-				if(distance.x < total_dist)
-					total_dist = distance.x;
-				if(distance.y < total_dist)
-					total_dist = distance.y;
-				if(distance.z < total_dist)
-					total_dist = distance.z;
-
-				adjacent_voxel = vec3(-step.x, -step.y, -step.z);
-
-				voxel_incr.x = (distance.x <= distance.y) && (distance.x <= distance.z);
-				voxel_incr.y = (distance.y <= distance.x) && (distance.y <= distance.z);
-				voxel_incr.z = (distance.z <= distance.x) && (distance.z <= distance.y);
-
-				distance.x += voxel_incr.x * deltaT.x;
-				distance.y += voxel_incr.y * deltaT.y;
-				distance.z += voxel_incr.z * deltaT.z;
-
-				current_voxel.x += voxel_incr.x * step.x;
-				current_voxel.y += voxel_incr.y * step.y;
-				current_voxel.z += voxel_incr.z * step.z;
-
-				if(current_voxel.x <= bounding_box_start.x || current_voxel.y <= bounding_box_start.y || current_voxel.z <= bounding_box_start.z ||
-				current_voxel.x >= bounding_box_end.x || current_voxel.y >= bounding_box_end.y || current_voxel.z >= bounding_box_end.z)
-					break;
-
-				int voxel = get_voxel((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
-				if(voxel > 0)
-				{
-					if(i == width_pixels / 2 && j == height_pixels / 2)
-						front_voxel.set((int) (current_voxel.x + size / 2.0 - 0.5), (int) (current_voxel.y + size / 2.0 - 0.5), (int) (current_voxel.z + size / 2.0 - 0.5));
-
-					WaitForSingleObject(
-						ghMutex,		// handle to mutex
-						INFINITE		// no time-out interval
-						);
-
-					SDL_SetRenderDrawColor(renderer,
-						max(0, (int) (colors[voxel - 1].r - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].g - total_dist * 10)),
-						max(0, (int) (colors[voxel - 1].b - total_dist * 10)),
-						SDL_ALPHA_OPAQUE);
-
-					//SDL_SetRenderDrawColor(renderer,
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	min(255, max(0, (int) (total_dist * 20))),
-					//	SDL_ALPHA_OPAQUE);
-
-					SDL_RenderDrawPoint(renderer, i, (height_pixels - 1 - j));
-					ReleaseMutex(ghMutex);
-					break;
-				}
-			}
-		}
-	}
-}
-
-void nothing()
-{
-	for (int i = 0; i < 10000; ++i)
-	{
-		if(i % 10000 == 0)
-			cout << "n";
 	}
 }
 
@@ -744,22 +366,10 @@ void draw()
 {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	//SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
 	SDL_RenderClear(renderer);
 
 	compute_raycast();
-	//// threads
-	//HANDLE th1 = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) compute_raycast0, NULL, 0, NULL);
-	//HANDLE th2 = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) compute_raycast1, NULL, 0, NULL);
-	//HANDLE th3 = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) compute_raycast2, NULL, 0, NULL);
-
-	//HANDLE th[] = {th1, th2, th3};
-	//WaitForMultipleObjects(3, th, TRUE, INFINITE);
-
-	//// close threads
-	//CloseHandle(th1);
-	//CloseHandle(th2);
-	//CloseHandle(th3);
-	//CloseHandle(ghMutex);
 
 	SDL_RenderPresent(renderer);
 
@@ -1001,13 +611,6 @@ int main(int argc, char *argv[])
 	}
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_RenderSetScale(renderer, 1.0 / RENDER_SCALE, 1.0 / RENDER_SCALE);
-
-	// mutex
-	ghMutex = CreateMutex( 
-		NULL,				// default security attributes
-		FALSE,				// initially not owned
-		NULL				// unnamed mutex
-		);
 
 	initialize();
 	run();
