@@ -7,8 +7,12 @@
                 "${workspaceFolder}/src/include",
                 "${workspaceFolder}/src/glm",
                 "${workspaceFolder}/src/glm/**",
-                "C:\\Dev\\i686-w64-mingw32\\include\\SDL2",
-                "C:\\Dev\\glm"
+                "/home/zso/Dev/k3-lidar/external/sdsl-lite/include",
+                "/home/zso/Dev/k3-lidar/external/LAStools/LASzip/src",
+                "/home/zso/Dev/k3-lidar/external/LAStools/LASlib/inc",
+                "/home/zso/include/",
+                "/home/zso/Dev/k3-lidar/external",
+                "/home/zso/Dev/k3-lidar/include"
             ],
             "defines": [
                 "_DEBUG",
@@ -16,10 +20,10 @@
                 "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.22000.0",
-            "compilerPath": "cl.exe",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "windows-msvc-x64"
+            "intelliSenseMode": "linux-gcc-x64"
         }
     ],
     "version": 4

@@ -1,2 +1,2 @@
 all:
-	g++ -IC:\Dev\i686-w64-mingw32\include\SDL2 -IC:\Dev\glm -LC:\Dev\i686-w64-mingw32\lib -o main main.cpp SimplexNoise.cpp -lmingw32 -lSDL2main -lSDL2 -std=c++11 -static-libgcc
+	g++ -g main.cpp SimplexNoise.cpp `sdl2-config --cflags --libs` -I/home/zso/Dev/k3-lidar/include -I/home/zso/Dev/k3-lidar/external  -I/home/zso/Dev/k3-lidar/external/sdsl-lite/include -I/home/zso/Dev/k3-lidar/external/LAStools/LASzip/src -I/home/zso/Dev/k3-lidar/external/malloc_count/include -L/home/zso/lib/ -lsdsl

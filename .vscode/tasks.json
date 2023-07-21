@@ -11,13 +11,9 @@
                 "SimplexNoise.cpp",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "-IC:\\Dev\\i686-w64-mingw32\\include\\SDL2",
-                "-IC:\\Dev\\glm",
-                "-LC:\\Dev\\i686-w64-mingw32\\lib",
-                "-lmingw32",
-                "-lSDL2main",
-                "-lSDL2",
-                "-static-libgcc"
+                "-lsdsl",
+                "`sdl2-config --cflags --libs`",
+                "-L/home/zso/lib/"
             ],
             "options": {
                 "cwd": "${fileDirname}"
