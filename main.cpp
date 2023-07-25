@@ -188,6 +188,10 @@ SDL_Color colors[] = {
 	{52, 172, 186}
 };
 
+bool debugging = false;
+int debugging_i = 0;
+int debugging_j = 0;
+
 void redraw()
 {
 	draw_again = true;
@@ -785,19 +789,6 @@ bool get_octree_voxel_stack(vec3 v, vec3 rv, vec4 &voxel_color, float &node_size
 	return solid_voxel;
 }
 
-bool get_kdtree_voxel(vec3 v, vec3 rv, vec4 &voxel_color, float &node_size, vec3 &proportional_position)
-{
-	//cout << v.x << ", " << v.y << ", " << v.z << endl;
-	std::vector<k3_tree_base<>::point_type> result;
-	return kdtree->get_custom(
-		(int) v.x,
-		(int) v.y,
-		(int) v.z,
-		node_size,
-		proportional_position
-		);
-}
-
 void octree_insert(node_t** node, vec3 point, vec4 color, vec3 position, int depth)
 {
 	if(*node == nullptr)
@@ -1230,12 +1221,56 @@ void raycast_octree_stack()
 	}
 }
 
-void raycast_kdtree_stack()
+void get_kdtree_init_variables(vec3 real_point, float &node_size_ptr, vec3 &proportional_position_ptr)
+{
+	std::vector<k3_tree_base<>::point_type> result;
+	kdtree->get_custom(
+		real_point.x,
+		real_point.y,
+		real_point.z,
+		real_point.x,
+		real_point.y,
+		real_point.z,
+		node_size_ptr,
+		proportional_position_ptr
+		);
+}
+
+bool get_kdtree_voxel(vec3 v, vec3 rv, vec4* voxel_color, float &node_size, vec3 &proportional_position)
+{
+	std::vector<k3_tree_base<>::point_type> result;
+	if(kdtree->get_custom(
+		v.x,
+		v.y,
+		v.z,
+		rv.x,
+		rv.y,
+		rv.z,
+		node_size,
+		proportional_position
+		))
+	{
+		if(voxel_color)
+			*voxel_color = vec4(255, 0, 0, 255);
+		return true;
+	}
+	return false;
+}
+
+void raycast_kdtree()
 {
 	for (int i = 0; i < width_pixels; ++i)
 	{
 		for (int j = 0; j < height_pixels; ++j)
 		{
+			if((input_lclick_down && i == width_pixels / 2 && j == height_pixels / 2) ||
+				(debugging && i == debugging_i && j == debugging_j))
+			{
+				debugging = false;
+				int a = 0;
+			}
+
+			bool painted = false;
 			jumps = 0;
 			not_null_jumps = 0;
 			max_depth = 0;
@@ -1263,39 +1298,16 @@ void raycast_kdtree_stack()
 				if(ray_intersects_aabb(camera_pos, ray_direction, bounding_box, &ray_hit, &face_normal))
 				{
 					ray_hit_offseted = ray_hit - face_normal * 0.5f;
+					ray_hit_offseted.x = clamp(ray_hit_offseted.x, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
+					ray_hit_offseted.y = clamp(ray_hit_offseted.y, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
+					ray_hit_offseted.z = clamp(ray_hit_offseted.z, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
 					total_dist = distance(camera_pos, ray_hit);
 					vec4 voxel_color;
 
-					if(get_kdtree_voxel(ray_hit_offseted, ray_hit, voxel_color, node_size, proportional_position))
+					if(get_kdtree_voxel(ray_hit_offseted, ray_hit, &voxel_color, node_size, proportional_position))
 					{
-						if(render_mode == DEPTH)
-						{
-							current_color = vec4(
-								std::min(255, std::max(0, (int) (total_dist * 100.0f / BOUNDING_BOX_SIZE))),
-								std::min(255, std::max(0, (int) (total_dist * 100.0f / BOUNDING_BOX_SIZE))),
-								std::min(255, std::max(0, (int) (total_dist * 100.0f / BOUNDING_BOX_SIZE))),
-								255);
-						}
-						else if(render_mode == COLOR)
-						{
-							voxel_color = vec4(255, 0, 0, 255);
-							current_color = voxel_color;
-							//current_color *= float(dot(-face_normal, directional_light) * 0.25 + 0.75);
-							current_color.w = 255;
-						}
-						else if(render_mode == JUMPS)
-						{
-							blue_and_green = std::max(0, 255 - (max_depth + jumps) * jump_multiplier * 2);
-							current_color = vec4(255, blue_and_green, blue_and_green, 255);
-						}
-						else if(render_mode == NOT_NULL_JUMPS)
-						{
-							blue_and_green = std::max(0, 255 - max_depth * jump_multiplier * 4);
-							current_color = vec4(blue_and_green, blue_and_green, 255, 255);
-						}
-
-						//set_pixel(i, j, current_color);
-						set_pixel(i, j, vec4(255, 0, 0, 255));
+						set_pixel(i, j, voxel_color);
+						painted = true;
 						continue;
 					}
 					jumps++;
@@ -1303,19 +1315,19 @@ void raycast_kdtree_stack()
 				else
 				{
 					set_pixel(i, j, vec4(255, 255, 255, 255));
+					painted = true;
 					continue;
 				}
 			}
 			else
 			{
-				node_stack = default_stack;
 				node_size = start_node_size;
 				proportional_position = start_proportional_position;
 			}
 
 			// traversal
 			vec3 step = vec3(1, 1, 1);						// Signo de cada componente del vector ray_direction
-			vec3 deltaT = vec3(1, 1, 1) * 999999.0f;		// Distancia que cada componente avanzaría si el rayo recorriese 1 unidad en ese axis
+			vec3 deltaT = vec3(1, 1, 1) * 999999.0f;		// Distancia que avanzaría el rayo para recorrer 1 unidad en ese axis
 			vec3 distance = vec3(1, 1, 1) * 999999.0f;		// Distancia que debe recorrer el rayo para chocar con la siguiente pared de ese axis
 
 			step.x = sgn(ray_direction.x);
@@ -1390,8 +1402,6 @@ void raycast_kdtree_stack()
 				if(ray_hit_offseted.x < 0 || ray_hit_offseted.y < 0 || ray_hit_offseted.z < 0 ||
 				ray_hit_offseted.x >= bounding_box.x || ray_hit_offseted.y >= bounding_box.y || ray_hit_offseted.z >= bounding_box.z)
 				{
-					if(input_lclick_down && i == width_pixels / 2 && j == height_pixels / 2)
-						cout << jumps << endl;
 					
 					if(render_mode == JUMPS)
 					{
@@ -1404,50 +1414,32 @@ void raycast_kdtree_stack()
 						current_color = vec4(blue_and_green, blue_and_green, 255, 255);
 					}
 					else
-						current_color = vec4(230, 230, 230, 255);
+						current_color = vec4(240, 240, 240, 255);
 
 					set_pixel(i, j, current_color);
+					painted = true;
 					break;
 				}
 
 				vec4 voxel_color;
-				if(get_kdtree_voxel(ray_hit_offseted, ray_hit, voxel_color, node_size, proportional_position))
+				if(get_kdtree_voxel(ray_hit_offseted, ray_hit, &voxel_color, node_size, proportional_position))
 				{
-					if(input_lclick_down && i == width_pixels / 2 && j == height_pixels / 2)
-						cout << jumps << endl;
+					face_normal = - voxel_incr;
 					
-					if(render_mode == DEPTH)
-					{
-						current_color = vec4(
-							std::min(255, std::max(0, (int) (total_dist * 100.0f / BOUNDING_BOX_SIZE))),
-							std::min(255, std::max(0, (int) (total_dist * 100.0f / BOUNDING_BOX_SIZE))),
-							std::min(255, std::max(0, (int) (total_dist * 100.0f / BOUNDING_BOX_SIZE))),
-							255);
-					}
-					else if(render_mode == COLOR)
-					{
-						voxel_color = vec4(255, 0, 0, 255);
-						current_color = voxel_color;
-						face_normal = - voxel_incr;
-						//current_color *= float(dot(-face_normal, directional_light) * 0.25 + 0.75);
-						current_color.w = 255;
-					}
-					else if(render_mode == JUMPS)
-					{
-						blue_and_green = std::max(0, 255 - (max_depth + jumps) * jump_multiplier * 2);
-						current_color = vec4(255, blue_and_green, blue_and_green, 255);
-					}
-					else if(render_mode == NOT_NULL_JUMPS)
-					{
-						blue_and_green = std::max(0, 255 - max_depth * jump_multiplier * 4);
-						current_color = vec4(blue_and_green, blue_and_green, 255, 255);
-					}
-
-					//set_pixel(i, j, current_color);
 					set_pixel(i, j, vec4(255, 0, 0, 255));
+					painted = true;
 					break;
 				}
 			}
+			if(!painted)
+			{
+				set_pixel(i, j, vec4(255, 0, 255, 255));
+				//debugging = true;
+				debugging_i = i;
+				debugging_j = j;
+			}
+			if(input_lclick_down && i == width_pixels / 2 && j == height_pixels / 2)
+				cout << "x: " << ray_hit.x << ", y: " << ray_hit.y << ", z: " << ray_hit.z << endl;
 		}
 	}
 }
@@ -1463,6 +1455,8 @@ void draw()
 		if(data_type == OCTREE)
 			//octree_set_default_stack(camera_pos, start_node_size, start_proportional_position);
 			get_octree_node_size(&octree->root, camera_pos, camera_pos, vec3(), 0, &start_node_size, &start_proportional_position);
+		else if(data_type == KDTREE)
+			get_kdtree_init_variables(camera_pos, start_node_size, start_proportional_position);
 	}
 
 	// write the pixels
@@ -1472,12 +1466,12 @@ void draw()
 		raycast_matrix();
 	else if(data_type == OCTREE)
 	{
-		//raycast_octree();
-		raycast_octree_stack();
+		raycast_octree();
+		//raycast_octree_stack();
 	}
 	else if(data_type == KDTREE)
 	{
-		raycast_kdtree_stack();
+		raycast_kdtree();
 	}
 
 	set_pixel(width_pixels / 2 - 2, height_pixels / 2, vec4(255, 255, 255, 255));
@@ -1977,9 +1971,9 @@ void load_mesh()
 							//voxel_data[i * BOUNDING_BOX_SIZE * BOUNDING_BOX_SIZE + j * BOUNDING_BOX_SIZE + k] = hsv2rgb(vec4(hue, 255, 255, 255));
 							
 							// Get position (x, y, z)
-							pos_x = rand() % BOUNDING_BOX_SIZE;
-							pos_y = rand() % BOUNDING_BOX_SIZE;
-							pos_z = rand() % BOUNDING_BOX_SIZE;
+							pos_x = i;
+							pos_y = j;
+							pos_z = k;
 
 							// Store point into vector
 							points.push_back({pos_x, pos_y, pos_z});
@@ -2198,11 +2192,11 @@ void update()
 	//else if(input_rclick_down)
 	//	voxel_data[(int) (front_voxel.x + adjacent_voxel.x)][(int) (front_voxel.y + adjacent_voxel.y)][(int) (front_voxel.z + adjacent_voxel.z)] = (rand() % 8) + 1;
 
-	if(input_lclick_down)
-	{
-		//cout << "pos: " << camera_pos.x << " " << camera_pos.y << " " << camera_pos.z << endl;
-		//cout << "dir: " << camera_forward.x << " " << camera_forward.y << " " << camera_forward.z << endl;
-	}
+	//if(input_lclick_down)
+	//{
+	//	cout << "pos: " << camera_pos.x << " " << camera_pos.y << " " << camera_pos.z << endl;
+	//	cout << "dir: " << camera_forward.x << " " << camera_forward.y << " " << camera_forward.z << endl;
+	//}
 
 	if(input_rclick_down)
 		render_mode = (render_mode_enum) (((int) render_mode + 1) % 4);
@@ -2334,13 +2328,17 @@ void run()
 	uint it = 0;
 	while(!input_quit)
 	{
-		catch_input();
-		update();
+		if(!debugging)
+		{
+			catch_input();
+			update();
+		}
 
 		if(draw_again)
 		{
 			draw();
-			draw_again = false;
+			if(!debugging)
+				draw_again = false;
 		}
 
 		chrono::steady_clock::time_point current_time = chrono::steady_clock::now();
@@ -2348,7 +2346,7 @@ void run()
 		previous_time = current_time;
 		smooth_delta_time = 0.8f * smooth_delta_time + 0.2 * delta_time;
 
-		if(it++ % int(std::max(1.0f, 1.0f / delta_time)) == 0)
+		if(it++ % int(std::max(1.0f, 0.2f / delta_time)) == 0)
 			SDL_SetWindowTitle(window, to_string((int) (1.0 / smooth_delta_time)).c_str());
 	}
 	cout << "input_quit: " << (input_quit ? "true" : "false") << endl;
@@ -2361,11 +2359,11 @@ void cleanup()
 
 int main(int argc, char *argv[])
 {
-	RENDER_SCALE = 0.1f;
-	BOUNDING_BOX_SIZE = 8;
+	RENDER_SCALE = 0.2f;
+	BOUNDING_BOX_SIZE = 128;
 	data_type = KDTREE;
-	mesh_type = RANDOM;
-	random_points_count = 16;	// only used if mesh_type is RANDOM
+	mesh_type = MESH;
+	random_points_count = 64;	// only used if mesh_type is RANDOM
 
 	width_pixels = WIDTH * RENDER_SCALE;
 	height_pixels = HEIGHT * RENDER_SCALE;
@@ -2419,3 +2417,7 @@ int main(int argc, char *argv[])
 	cout << "end" << endl;
 	return 0;
 }
+
+/*
+00010100 00010000 10000000
+*/
