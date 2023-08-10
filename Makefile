@@ -1,2 +1,2 @@
 all:
-	g++ -g main.cpp SimplexNoise.cpp `sdl2-config --cflags --libs` -I/home/zso/Dev/k3-lidar/include -I/home/zso/Dev/k3-lidar/external  -I/home/zso/Dev/k3-lidar/external/sdsl-lite/include -I/home/zso/Dev/k3-lidar/external/LAStools/LASzip/src -I/home/zso/Dev/k3-lidar/external/malloc_count/include -L/home/zso/lib/ -lsdsl
+    g++ -O3 -g -o main main.cpp SimplexNoise.cpp `sdl2-config --cflags --libs` -I/home/zso/Dev/k3-lidar/include -I/home/zso/Dev/k3-lidar/external  -I/home/zso/Dev/k3-lidar/external/sdsl-lite/include -I/home/zso/Dev/k3-lidar/external/LAStools/LASzip/src -I/home/zso/Dev/k3-lidar/external/malloc_count/include -L/home/zso/lib/ -L/home/zso/Dev/k3-lidar/external/LAStools/LASlib/lib -lsdsl -lLASlib
