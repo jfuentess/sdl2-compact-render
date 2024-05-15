@@ -41,7 +41,10 @@ make
 
 ## Examples
 
-| ![Cube screenshot](screenshots/cube.png) |
-|:--:|
-| ./render -mf cube|
+| ![Cube screenshot](screenshots/cube.png) |  ![Bunny screenshot](screenshots/bunny.png) |
+|:--:|:--:|
+| ./render -mf cube| ./render -mf bunny -s 512|
+| ![teapot screenshot](screenshots/teapot.png) |  ![Bunny screenshot](screenshots/teapot_jumps.png) |
+|:--:|:--:|
+| ./render -s 1024| ./render -mf -render 3|
 
