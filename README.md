@@ -30,16 +30,18 @@ flags:
 	-ry [n] rotación del modelo en el eje y (en grados)  
 	-rz [n] rotación del modelo en el eje z (en grados)  
 
-## Compilación:
+## Compile:
 
-ajustar paths con los correspondientes de su instalación
+Change the path to SDSL folder in Makefile
 
-g++ -O3 -g -o main main.cpp SimplexNoise.cpp  
--I[SDL2]  
--I[k3-lidar/include]  
--I/[k3-lidar/external]   
--I[k3-lidar/external/sdsl-lite/include]  
--I[k3-lidar/external/LAStools/LASzip/src]  
--I[k3-lidar/external/malloc_count/include]  
--L[lib] -L[k3-lidar/external/LAStools/LASlib/lib]  
--lsdsl -lLASlib  
+ ```
+make
+ ```
+
+
+## Examples
+
+| ![Cube screenshot](screenshots/cube.png) |
+|:--:|
+| ./render -mf cube|
+

@@ -3129,6 +3129,8 @@ int main(int argc, char *argv[])
 				rz = atof(argv[i + 1]);
 			else if(strcmp(argv[i], "-ts") == 0)
 				target_samples = atoi(argv[i + 1]);
+			else if(strcmp(argv[i], "-render") == 0)
+			  render_mode = (render_mode_enum) atoi(argv[i + 1]);
 			
 			i++;
 		}
