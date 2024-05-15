@@ -1,5 +1,7 @@
 #define NOMINMAX
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/projection.hpp>
@@ -26,7 +28,7 @@
 
 #include <k3_tree.hpp>
 #include <k3_tree_base.hpp>
-#include <LIDAR/k3_tree_Lp1.hpp>
+//#include <LIDAR/k3_tree_Lp1.hpp> // Used for lidar points
 
 #define WIDTH 1280
 #define HEIGHT 720
@@ -111,10 +113,10 @@ unsigned long long memory_usage = 0;
 vec4* voxel_data;
 octree_t* octree;
 k3_tree<>* kdtree;
-k3_tree_Lp1<>* kdtree_lidar;
+//k3_tree_Lp1<>* kdtree_lidar;
 
 std::vector<k3_tree_base<>::point_type> points;
-std::vector<k3_tree_Lp1<>::i_point_LIDAR_type> points_lidar;
+//std::vector<k3_tree_Lp1<>::i_point_LIDAR_type> points_lidar;
 
 data_type_enum data_type;
 mesh_type_enum mesh_type;
@@ -1319,19 +1321,19 @@ void get_kdtree_init_variables(vec3 real_point, float &node_size_ptr, vec3 &prop
 		);
 }
 
-void get_kdtree_lidar_init_variables(vec3 real_point, float &node_size_ptr, vec3 &proportional_position_ptr)
-{
-	kdtree_lidar->get_custom(
-		real_point.x,
-		real_point.y,
-		real_point.z,
-		real_point.x,
-		real_point.y,
-		real_point.z,
-		node_size_ptr,
-		proportional_position_ptr
-		);
-}
+// void get_kdtree_lidar_init_variables(vec3 real_point, float &node_size_ptr, vec3 &proportional_position_ptr)
+// {
+// 	kdtree_lidar->get_custom(
+// 		real_point.x,
+// 		real_point.y,
+// 		real_point.z,
+// 		real_point.x,
+// 		real_point.y,
+// 		real_point.z,
+// 		node_size_ptr,
+// 		proportional_position_ptr
+// 		);
+// }
 
 bool get_kdtree_voxel(vec3 v, vec3 rv, vec4 &voxel_color, float &node_size, vec3 &proportional_position)
 {
@@ -1353,26 +1355,26 @@ bool get_kdtree_voxel(vec3 v, vec3 rv, vec4 &voxel_color, float &node_size, vec3
 	return false;
 }
 
-bool get_kdtree_lidar_voxel(vec3 v, vec3 rv, uint &voxel_color, float &node_size, vec3 &proportional_position)
-{
-	util_points::point_LIDAR_result result;
-	if(kdtree_lidar->get_attr_no_factor_custom(
-		v.x,
-		v.y,
-		v.z,
-		rv.x,
-		rv.y,
-		rv.z,
-		node_size,
-		proportional_position,
-		result
-		))
-	{
-		voxel_color = result.intensity;
-		return true;
-	}
-	return false;
-}
+// bool get_kdtree_lidar_voxel(vec3 v, vec3 rv, uint &voxel_color, float &node_size, vec3 &proportional_position)
+// {
+// 	util_points::point_LIDAR_result result;
+// 	if(kdtree_lidar->get_attr_no_factor_custom(
+// 		v.x,
+// 		v.y,
+// 		v.z,
+// 		rv.x,
+// 		rv.y,
+// 		rv.z,
+// 		node_size,
+// 		proportional_position,
+// 		result
+// 		))
+// 	{
+// 		voxel_color = result.intensity;
+// 		return true;
+// 	}
+// 	return false;
+// }
 
 void raycast_kdtree()
 {
@@ -1612,177 +1614,177 @@ void raycast_kdtree()
 	}
 }
 
-void raycast_kdtree_lidar()
-{
-	for (int i = 0; i < width_pixels; ++i)
-	{
-		for (int j = 0; j < height_pixels; ++j)
-		{
-			if((input_lclick_down && i == width_pixels / 2 && j == height_pixels / 2) ||
-				(debugging && i == debugging_i && j == debugging_j))
-			{
-				debugging = false;
-				int a = 0;
-			}
+// void raycast_kdtree_lidar()
+// {
+// 	for (int i = 0; i < width_pixels; ++i)
+// 	{
+// 		for (int j = 0; j < height_pixels; ++j)
+// 		{
+// 			if((input_lclick_down && i == width_pixels / 2 && j == height_pixels / 2) ||
+// 				(debugging && i == debugging_i && j == debugging_j))
+// 			{
+// 				debugging = false;
+// 				int a = 0;
+// 			}
 
-			jumps = 0;
-			not_null_jumps = 0;
-			max_depth = 0;
+// 			jumps = 0;
+// 			not_null_jumps = 0;
+// 			max_depth = 0;
 
-			vec3 right_offset = vec3(camera_right);
-			right_offset *= ((i - width_pixels * 0.5f) / height_pixels) * raycast_offset_multiplier;
+// 			vec3 right_offset = vec3(camera_right);
+// 			right_offset *= ((i - width_pixels * 0.5f) / height_pixels) * raycast_offset_multiplier;
 
-			vec3 up_offset = vec3(camera_up);
-			up_offset *= ((j - height_pixels * 0.5f) / height_pixels) * raycast_offset_multiplier;
+// 			vec3 up_offset = vec3(camera_up);
+// 			up_offset *= ((j - height_pixels * 0.5f) / height_pixels) * raycast_offset_multiplier;
 
-			vec3 ray_direction = normalize(vec3(camera_forward + right_offset + up_offset));
+// 			vec3 ray_direction = normalize(vec3(camera_forward + right_offset + up_offset));
 
-			float total_dist = 0;
+// 			float total_dist = 0;
 
-			vec3 ray_hit = camera_pos;
-			vec3 ray_hit_offseted = camera_pos;
+// 			vec3 ray_hit = camera_pos;
+// 			vec3 ray_hit_offseted = camera_pos;
 
-			vec3 face_normal = vec3();
+// 			vec3 face_normal = vec3();
 
-			float node_size;
-			vec3 proportional_position;
+// 			float node_size;
+// 			vec3 proportional_position;
 
-			if(outside)
-			{
-				if(ray_intersects_aabb(camera_pos, ray_direction, bounding_box, &ray_hit, &face_normal))
-				{
-					ray_hit_offseted = ray_hit - face_normal * 0.5f;
-					ray_hit_offseted.x = clamp(ray_hit_offseted.x, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
-					ray_hit_offseted.y = clamp(ray_hit_offseted.y, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
-					ray_hit_offseted.z = clamp(ray_hit_offseted.z, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
-					total_dist = distance(camera_pos, ray_hit);
-					uint voxel_color;
+// 			if(outside)
+// 			{
+// 				if(ray_intersects_aabb(camera_pos, ray_direction, bounding_box, &ray_hit, &face_normal))
+// 				{
+// 					ray_hit_offseted = ray_hit - face_normal * 0.5f;
+// 					ray_hit_offseted.x = clamp(ray_hit_offseted.x, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
+// 					ray_hit_offseted.y = clamp(ray_hit_offseted.y, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
+// 					ray_hit_offseted.z = clamp(ray_hit_offseted.z, 0.5f, BOUNDING_BOX_SIZE - 0.5f);
+// 					total_dist = distance(camera_pos, ray_hit);
+// 					uint voxel_color;
 
-					if(get_kdtree_lidar_voxel(ray_hit_offseted, ray_hit, voxel_color, node_size, proportional_position))
-					{
-						set_pixel(i, j, voxel_color);
-						continue;
-					}
-					jumps++;
-				}
-				else
-				{
-					set_pixel(i, j, vec4(255, 255, 255, 255));
-					continue;
-				}
-			}
-			else
-			{
-				node_size = start_node_size;
-				proportional_position = start_proportional_position;
-			}
+// 					if(get_kdtree_lidar_voxel(ray_hit_offseted, ray_hit, voxel_color, node_size, proportional_position))
+// 					{
+// 						set_pixel(i, j, voxel_color);
+// 						continue;
+// 					}
+// 					jumps++;
+// 				}
+// 				else
+// 				{
+// 					set_pixel(i, j, vec4(255, 255, 255, 255));
+// 					continue;
+// 				}
+// 			}
+// 			else
+// 			{
+// 				node_size = start_node_size;
+// 				proportional_position = start_proportional_position;
+// 			}
 
-			// traversal
-			vec3 step = vec3(1, 1, 1);						// Signo de cada componente del vector ray_direction
-			vec3 deltaT = vec3(999999.0f, 999999.0f, 999999.0f);		// Distancia que avanzaría el rayo para recorrer 1 unidad en ese axis
-			vec3 distance = vec3(999999.0f, 999999.0f, 999999.0f);		// Distancia que debe recorrer el rayo para chocar con la siguiente pared de ese axis
+// 			// traversal
+// 			vec3 step = vec3(1, 1, 1);						// Signo de cada componente del vector ray_direction
+// 			vec3 deltaT = vec3(999999.0f, 999999.0f, 999999.0f);		// Distancia que avanzaría el rayo para recorrer 1 unidad en ese axis
+// 			vec3 distance = vec3(999999.0f, 999999.0f, 999999.0f);		// Distancia que debe recorrer el rayo para chocar con la siguiente pared de ese axis
 
-			step.x = sgn(ray_direction.x);
-			if(abs(ray_direction.x) > 0.00001f)
-				deltaT.x = abs(1.0f / ray_direction.x);
+// 			step.x = sgn(ray_direction.x);
+// 			if(abs(ray_direction.x) > 0.00001f)
+// 				deltaT.x = abs(1.0f / ray_direction.x);
 
-			step.y = sgn(ray_direction.y);
-			if(abs(ray_direction.y) > 0.00001f)
-				deltaT.y = abs(1.0f / ray_direction.y);
+// 			step.y = sgn(ray_direction.y);
+// 			if(abs(ray_direction.y) > 0.00001f)
+// 				deltaT.y = abs(1.0f / ray_direction.y);
 
-			step.z = sgn(ray_direction.z);
-			if(abs(ray_direction.z) > 0.00001f)
-				deltaT.z = abs(1.0f / ray_direction.z);
+// 			step.z = sgn(ray_direction.z);
+// 			if(abs(ray_direction.z) > 0.00001f)
+// 				deltaT.z = abs(1.0f / ray_direction.z);
 
-			vec3 voxel_incr = vec3(0, 0, 0);	// Máscara de axis de la colisión actual, si el rayo acaba de entrar
-												// a un voxel por alguna de sus caras con normal x, entonces voxel_incr
-												// será vec3(1, 0, 0).
+// 			vec3 voxel_incr = vec3(0, 0, 0);	// Máscara de axis de la colisión actual, si el rayo acaba de entrar
+// 												// a un voxel por alguna de sus caras con normal x, entonces voxel_incr
+// 												// será vec3(1, 0, 0).
 
-												// Se multiplicará con step, (vector que guarda el signo de cada componente) para tener el vector de desplazamiento
+// 												// Se multiplicará con step, (vector que guarda el signo de cada componente) para tener el vector de desplazamiento
 
-			int it = 0;
-			while(it++ < 3 * BOUNDING_BOX_SIZE)
-			{
-				if((int) voxel_incr.x != 0 || proportional_position.x == 0 || proportional_position.x == 1)
-					distance.x = node_size * deltaT.x;
-				else if(step.x > 0)
-					distance.x = (1.0f - proportional_position.x) * node_size * deltaT.x;
-				else if(step.x < 0)
-					distance.x = proportional_position.x * node_size * deltaT.x;
-				else
-					distance.x = 9999;
+// 			int it = 0;
+// 			while(it++ < 3 * BOUNDING_BOX_SIZE)
+// 			{
+// 				if((int) voxel_incr.x != 0 || proportional_position.x == 0 || proportional_position.x == 1)
+// 					distance.x = node_size * deltaT.x;
+// 				else if(step.x > 0)
+// 					distance.x = (1.0f - proportional_position.x) * node_size * deltaT.x;
+// 				else if(step.x < 0)
+// 					distance.x = proportional_position.x * node_size * deltaT.x;
+// 				else
+// 					distance.x = 9999;
 
-				if((int) voxel_incr.y != 0 || proportional_position.y == 0 || proportional_position.y == 1)
-					distance.y = node_size * deltaT.y;
-				else if(step.y > 0)
-					distance.y = (1.0f - proportional_position.y) * node_size * deltaT.y;
-				else if(step.y < 0)
-					distance.y = proportional_position.y * node_size * deltaT.y;
-				else
-					distance.y = 9999;
+// 				if((int) voxel_incr.y != 0 || proportional_position.y == 0 || proportional_position.y == 1)
+// 					distance.y = node_size * deltaT.y;
+// 				else if(step.y > 0)
+// 					distance.y = (1.0f - proportional_position.y) * node_size * deltaT.y;
+// 				else if(step.y < 0)
+// 					distance.y = proportional_position.y * node_size * deltaT.y;
+// 				else
+// 					distance.y = 9999;
 
-				if((int) voxel_incr.z != 0 || proportional_position.z == 0 || proportional_position.z == 1)
-					distance.z = node_size * deltaT.z;
-				else if(step.z > 0)
-					distance.z = (1.0f - proportional_position.z) * node_size * deltaT.z;
-				else if(step.z < 0)
-					distance.z = proportional_position.z * node_size * deltaT.z;
-				else
-					distance.z = 9999;
+// 				if((int) voxel_incr.z != 0 || proportional_position.z == 0 || proportional_position.z == 1)
+// 					distance.z = node_size * deltaT.z;
+// 				else if(step.z > 0)
+// 					distance.z = (1.0f - proportional_position.z) * node_size * deltaT.z;
+// 				else if(step.z < 0)
+// 					distance.z = proportional_position.z * node_size * deltaT.z;
+// 				else
+// 					distance.z = 9999;
 
-				float min_distance = 9999;
-				if(distance.x < min_distance)
-					min_distance = distance.x;
-				if(distance.y < min_distance)
-					min_distance = distance.y;
-				if(distance.z < min_distance)
-					min_distance = distance.z;
+// 				float min_distance = 9999;
+// 				if(distance.x < min_distance)
+// 					min_distance = distance.x;
+// 				if(distance.y < min_distance)
+// 					min_distance = distance.y;
+// 				if(distance.z < min_distance)
+// 					min_distance = distance.z;
 
-				voxel_incr = vec3(0, 0, 0);
-				if(distance.x <= distance.y && distance.x <= distance.z)
-					voxel_incr.x = step.x;
-				else if(distance.y <= distance.x && distance.y <= distance.z)
-					voxel_incr.y = step.y;
-				else if(distance.z <= distance.x && distance.z <= distance.y)
-					voxel_incr.z = step.z;
+// 				voxel_incr = vec3(0, 0, 0);
+// 				if(distance.x <= distance.y && distance.x <= distance.z)
+// 					voxel_incr.x = step.x;
+// 				else if(distance.y <= distance.x && distance.y <= distance.z)
+// 					voxel_incr.y = step.y;
+// 				else if(distance.z <= distance.x && distance.z <= distance.y)
+// 					voxel_incr.z = step.z;
 
-				total_dist += min_distance;
-				ray_hit = camera_pos + ray_direction * total_dist;
-				ray_hit_offseted = ray_hit + voxel_incr * 0.5f;
-				jumps++;
+// 				total_dist += min_distance;
+// 				ray_hit = camera_pos + ray_direction * total_dist;
+// 				ray_hit_offseted = ray_hit + voxel_incr * 0.5f;
+// 				jumps++;
 
-				if(ray_hit_offseted.x < 0 || ray_hit_offseted.y < 0 || ray_hit_offseted.z < 0 ||
-				ray_hit_offseted.x >= bounding_box.x || ray_hit_offseted.y >= bounding_box.y || ray_hit_offseted.z >= bounding_box.z)
-				{
+// 				if(ray_hit_offseted.x < 0 || ray_hit_offseted.y < 0 || ray_hit_offseted.z < 0 ||
+// 				ray_hit_offseted.x >= bounding_box.x || ray_hit_offseted.y >= bounding_box.y || ray_hit_offseted.z >= bounding_box.z)
+// 				{
 					
-					if(render_mode == JUMPS)
-					{
-						other_component = std::max(0, 255 - (max_depth + jumps) * jump_multiplier);
-						voxel_color = vec4(255, other_component, other_component, 255);
-					}
-					else if(render_mode == NOT_NULL_JUMPS)
-					{
-						other_component = std::max(0, 255 - max_depth * jump_multiplier);
-						voxel_color = vec4(other_component, other_component, 255, 255);
-					}
-					else
-						voxel_color = vec4(255, 255, 255, 255);
+// 					if(render_mode == JUMPS)
+// 					{
+// 						other_component = std::max(0, 255 - (max_depth + jumps) * jump_multiplier);
+// 						voxel_color = vec4(255, other_component, other_component, 255);
+// 					}
+// 					else if(render_mode == NOT_NULL_JUMPS)
+// 					{
+// 						other_component = std::max(0, 255 - max_depth * jump_multiplier);
+// 						voxel_color = vec4(other_component, other_component, 255, 255);
+// 					}
+// 					else
+// 						voxel_color = vec4(255, 255, 255, 255);
 
-					set_pixel(i, j, voxel_color);
-					break;
-				}
+// 					set_pixel(i, j, voxel_color);
+// 					break;
+// 				}
 
-				uint voxel_color;
-				if(get_kdtree_lidar_voxel(ray_hit_offseted, ray_hit, voxel_color, node_size, proportional_position))
-				{
-					set_pixel(i, j, voxel_color);
-					break;
-				}
-			}
-			average_jumps += jumps;
-		}
-	}
-}
+// 				uint voxel_color;
+// 				if(get_kdtree_lidar_voxel(ray_hit_offseted, ray_hit, voxel_color, node_size, proportional_position))
+// 				{
+// 					set_pixel(i, j, voxel_color);
+// 					break;
+// 				}
+// 			}
+// 			average_jumps += jumps;
+// 		}
+// 	}
+// }
 
 void draw()
 {
@@ -1797,8 +1799,8 @@ void draw()
 			get_octree_node_size(&octree->root, camera_pos, camera_pos, vec3(), 0, &start_node_size, &start_proportional_position);
 		else if(data_type == KDTREE)
 			get_kdtree_init_variables(camera_pos, start_node_size, start_proportional_position);
-		else if(data_type == KDTREE_LIDAR)
-			get_kdtree_lidar_init_variables(camera_pos, start_node_size, start_proportional_position);
+		// else if(data_type == KDTREE_LIDAR)
+		// 	get_kdtree_lidar_init_variables(camera_pos, start_node_size, start_proportional_position);
 	}
 
 	// write the pixels
@@ -1812,8 +1814,8 @@ void draw()
 		raycast_octree_stack();
 	else if(data_type == KDTREE)
 		raycast_kdtree();
-	else if(data_type == KDTREE_LIDAR)
-		raycast_kdtree_lidar();
+	// else if(data_type == KDTREE_LIDAR)
+	// 	raycast_kdtree_lidar();
 
 	rays += width_pixels * height_pixels;
 	total_frames++;
@@ -1956,56 +1958,56 @@ void record_position()
 	target_positions.push_back(item);
 }
 
-string print_dimensionality()
-{
-	float dimensionality;
-	if(data_type != KDTREE)
-	{
-		float average_proportion = 0;
-		for(int i = 1; i <= tree_height; i++)
-			average_proportion += solid_nodes[i] / (float) solid_nodes[i - 1];
-		average_proportion /= tree_height;
+// string print_dimensionality()
+// {
+// 	float dimensionality;
+// 	if(data_type != KDTREE)
+// 	{
+// 		float average_proportion = 0;
+// 		for(int i = 1; i <= tree_height; i++)
+// 			average_proportion += solid_nodes[i] / (float) solid_nodes[i - 1];
+// 		average_proportion /= tree_height;
 
-		dimensionality = log2f(average_proportion);
-	}
-	else
-		dimensionality = kdtree->get_dimensionality(solid_nodes, tree_height);
+// 		dimensionality = log2f(average_proportion);
+// 	}
+// 	else
+// 		dimensionality = kdtree->get_dimensionality(solid_nodes, tree_height);
 
-	//cout << "average dimensionality: " << dimensionality << endl;
-	std::stringstream stream;
-	stream << std::fixed << std::setprecision(2) << dimensionality;
-	return stream.str();
-}
+// 	//cout << "average dimensionality: " << dimensionality << endl;
+// 	std::stringstream stream;
+// 	stream << std::fixed << std::setprecision(2) << dimensionality;
+// 	return stream.str();
+// }
 
-string print_internal_nodes()
-{
-	if(data_type == OCTREE)
-	{
-		//std::cout << "internal nodes: " << octree_internal_nodes << std::endl;
-		return to_string(octree_internal_nodes);
-	}
-	else if(data_type == KDTREE)
-	{
-		//std::cout << "internal nodes: " << kdtree->get_k_t_length() / 8 << std::endl;
-		return to_string(kdtree->get_k_t_length() / 8);
-	}
-	return "";
-}
+// string print_internal_nodes()
+// {
+// 	if(data_type == OCTREE)
+// 	{
+// 		//std::cout << "internal nodes: " << octree_internal_nodes << std::endl;
+// 		return to_string(octree_internal_nodes);
+// 	}
+// 	else if(data_type == KDTREE)
+// 	{
+// 		//std::cout << "internal nodes: " << kdtree->get_k_t_length() / 8 << std::endl;
+// 		return to_string(kdtree->get_k_t_length() / 8);
+// 	}
+// 	return "";
+// }
 
-string print_space_divisions()
-{
-	if(data_type == OCTREE)
-	{
-		//std::cout << "space divisions: " << octree_internal_nodes << std::endl;
-		return to_string(octree_internal_nodes);
-	}
-	else if(data_type == KDTREE)
-	{
-		//std::cout << "space divisions: " << (kdtree->get_k_t_length() + kdtree->get_k_l_length()) / 8 << std::endl;
-		return to_string((kdtree->get_k_t_length() + kdtree->get_k_l_length()) / 8);
-	}
-	return "";
-}
+// string print_space_divisions()
+// {
+// 	if(data_type == OCTREE)
+// 	{
+// 		//std::cout << "space divisions: " << octree_internal_nodes << std::endl;
+// 		return to_string(octree_internal_nodes);
+// 	}
+// 	else if(data_type == KDTREE)
+// 	{
+// 		//std::cout << "space divisions: " << (kdtree->get_k_t_length() + kdtree->get_k_l_length()) / 8 << std::endl;
+// 		return to_string((kdtree->get_k_t_length() + kdtree->get_k_l_length()) / 8);
+// 	}
+// 	return "";
+// }
 
 string print_memory_usage()
 {
@@ -2526,28 +2528,28 @@ void load_mesh()
 						size_y = std::max(size_y, pos_y);
 						size_z = std::max(size_z, pos_z);
 					}
-					else if(data_type == KDTREE_LIDAR)
-					{
-						//voxel_data[i * BOUNDING_BOX_SIZE * BOUNDING_BOX_SIZE + j * BOUNDING_BOX_SIZE + k] = hsv2rgb(vec4(hue, 255, 255, 255));
+					// else if(data_type == KDTREE_LIDAR)
+					// {
+					// 	//voxel_data[i * BOUNDING_BOX_SIZE * BOUNDING_BOX_SIZE + j * BOUNDING_BOX_SIZE + k] = hsv2rgb(vec4(hue, 255, 255, 255));
 						
-						// Get position (x, y, z)
-						pos_x = i;
-						pos_y = j;
-						pos_z = k;
+					// 	// Get position (x, y, z)
+					// 	pos_x = i;
+					// 	pos_y = j;
+					// 	pos_z = k;
 
-						// Store point into vector
-						util_points::point_LIDAR point_l{};
-						point_l.X = i;
-						point_l.Y = j;
-						point_l.Z = k;
-						point_l.intensity = hex(hsv2rgb(vec4(hue, 255, 255, 255)));
-						points_lidar.push_back(point_l);
+					// 	// Store point into vector
+					// 	util_points::point_LIDAR point_l{};
+					// 	point_l.X = i;
+					// 	point_l.Y = j;
+					// 	point_l.Z = k;
+					// 	point_l.intensity = hex(hsv2rgb(vec4(hue, 255, 255, 255)));
+					// 	points_lidar.push_back(point_l);
 
-						// Calculate max size
-						size_x = std::max(size_x, pos_x);
-						size_y = std::max(size_y, pos_y);
-						size_z = std::max(size_z, pos_z);
-					}
+					// 	// Calculate max size
+					// 	size_x = std::max(size_x, pos_x);
+					// 	size_y = std::max(size_y, pos_y);
+					// 	size_z = std::max(size_z, pos_z);
+					// }
 				}
 	}
 
@@ -2560,13 +2562,13 @@ void load_mesh()
 
 		kdtree = new k3_tree(points, size_x + 1, size_y + 1, size_z + 1, 2, 2, 2);
 	}
-	if(data_type == KDTREE_LIDAR)
-	{
-		std::sort(points_lidar.begin(), points_lidar.end());
-		points_lidar.erase(std::unique(points_lidar.begin(), points_lidar.end()), points_lidar.end());
+	// if(data_type == KDTREE_LIDAR)
+	// {
+	// 	std::sort(points_lidar.begin(), points_lidar.end());
+	// 	points_lidar.erase(std::unique(points_lidar.begin(), points_lidar.end()), points_lidar.end());
 
-		kdtree_lidar = new k3_tree_Lp1(points_lidar);
-	}
+	// 	kdtree_lidar = new k3_tree_Lp1(points_lidar);
+	// }
 }
 
 void initialize()
@@ -2692,26 +2694,26 @@ void initialize()
 							size_y = std::max(size_y, pos_y);
 							size_z = std::max(size_z, pos_z);
 						}
-						else if(data_type == KDTREE_LIDAR)
-						{
-							// Get position (x, y, z)
-							pos_x = i;
-							pos_y = j;
-							pos_z = k;
+						// else if(data_type == KDTREE_LIDAR)
+						// {
+						// 	// Get position (x, y, z)
+						// 	pos_x = i;
+						// 	pos_y = j;
+						// 	pos_z = k;
 
-							// Store point into vector
-							util_points::point_LIDAR point_l{};
-							point_l.X = i;
-							point_l.Y = j;
-							point_l.Z = k;
-							point_l.intensity = hex(hsv2rgb(vec4(hue, 255, 255, 255)));
-							points_lidar.push_back(point_l);
+						// 	// Store point into vector
+						// 	util_points::point_LIDAR point_l{};
+						// 	point_l.X = i;
+						// 	point_l.Y = j;
+						// 	point_l.Z = k;
+						// 	point_l.intensity = hex(hsv2rgb(vec4(hue, 255, 255, 255)));
+						// 	points_lidar.push_back(point_l);
 
-							// Calculate max size
-							size_x = std::max(size_x, pos_x);
-							size_y = std::max(size_y, pos_y);
-							size_z = std::max(size_z, pos_z);
-						}
+						// 	// Calculate max size
+						// 	size_x = std::max(size_x, pos_x);
+						// 	size_y = std::max(size_y, pos_y);
+						// 	size_z = std::max(size_z, pos_z);
+						// }
 					}
 					else
 					{
@@ -2729,14 +2731,14 @@ void initialize()
 			kdtree = new k3_tree(points, size_x + 1, size_y + 1, size_z + 1, 2, 2, 2);
 		}
 
-		if(data_type == KDTREE_LIDAR)
-		{
-			// Remove duplicates
-			std::sort(points_lidar.begin(), points_lidar.end());
-			points.erase(std::unique(points.begin(), points.end()), points.end());
+		// if(data_type == KDTREE_LIDAR)
+		// {
+		// 	// Remove duplicates
+		// 	std::sort(points_lidar.begin(), points_lidar.end());
+		// 	points.erase(std::unique(points.begin(), points.end()), points.end());
 
-			kdtree_lidar = new k3_tree_Lp1(points_lidar);
-		}
+		// 	kdtree_lidar = new k3_tree_Lp1(points_lidar);
+		// }
 	}
 	else if(mesh_type == MESH)
 	{
@@ -2795,33 +2797,33 @@ void initialize()
 
 			kdtree = new k3_tree(points, size_x + 1, size_y + 1, size_z + 1, 2, 2, 2);
 		}
-		else if(data_type == KDTREE_LIDAR)
-		{
-			// Read file and create conceptual tree
-			uint64_t pos_x, pos_y, pos_z;
+		// else if(data_type == KDTREE_LIDAR)
+		// {
+		// 	// Read file and create conceptual tree
+		// 	uint64_t pos_x, pos_y, pos_z;
 
-			for(int i = 0; i < random_points_count; i++)
-			{
-				// Get position (x, y, z)
-				pos_x = rand() % BOUNDING_BOX_SIZE;
-				pos_y = rand() % BOUNDING_BOX_SIZE;
-				pos_z = rand() % BOUNDING_BOX_SIZE;
+		// 	for(int i = 0; i < random_points_count; i++)
+		// 	{
+		// 		// Get position (x, y, z)
+		// 		pos_x = rand() % BOUNDING_BOX_SIZE;
+		// 		pos_y = rand() % BOUNDING_BOX_SIZE;
+		// 		pos_z = rand() % BOUNDING_BOX_SIZE;
 
-				// Store point into vector
-				util_points::point_LIDAR point_l{};
-				point_l.X = pos_x;
-				point_l.Y = pos_y;
-				point_l.Z = pos_z;
-				point_l.intensity = hex(hsv2rgb(vec4(rand() % 255, 255, 255, 255)));
-				points_lidar.push_back(point_l);
-			}
+		// 		// Store point into vector
+		// 		util_points::point_LIDAR point_l{};
+		// 		point_l.X = pos_x;
+		// 		point_l.Y = pos_y;
+		// 		point_l.Z = pos_z;
+		// 		point_l.intensity = hex(hsv2rgb(vec4(rand() % 255, 255, 255, 255)));
+		// 		points_lidar.push_back(point_l);
+		// 	}
 
-			// Remove duplicates
-			std::sort(points_lidar.begin(), points_lidar.end());
-			points_lidar.erase(std::unique(points_lidar.begin(), points_lidar.end()), points_lidar.end());
+		// 	// Remove duplicates
+		// 	std::sort(points_lidar.begin(), points_lidar.end());
+		// 	points_lidar.erase(std::unique(points_lidar.begin(), points_lidar.end()), points_lidar.end());
 
-			kdtree_lidar = new k3_tree_Lp1(points_lidar);
-		}
+		// 	kdtree_lidar = new k3_tree_Lp1(points_lidar);
+		// }
 	}
 	
 	if(!input_recreate)
@@ -3218,9 +3220,9 @@ int main(int argc, char *argv[])
 
 		std::cout << "average jumps: " << average_jumps / (float) total_frames / (float) width_pixels / (float) height_pixels << std::endl;
 
-		cout << "internal nodes: " << print_internal_nodes() << endl;
+		//		cout << "internal nodes: " << print_internal_nodes() << endl;
 		cout << "memory usage: " << print_memory_usage() << " bytes" << endl;
-		cout << "dimensionality: " << print_dimensionality() << endl;
+		//		cout << "dimensionality: " << print_dimensionality() << endl;
 		cout << "voxels: " << solid_nodes[tree_height] << endl;
 	}
 	else
@@ -3301,7 +3303,7 @@ int main(int argc, char *argv[])
 		if(ind !=std::string::npos)
 			name.erase(ind,extension.length());
 
-		fprintf(fptr,"%s,%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s,%s,%s\n",
+		fprintf(fptr,"%s,%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s\n",
 			name.c_str(),
 			data_type_names[data_type].c_str(),
 			BOUNDING_BOX_SIZE,
@@ -3312,9 +3314,9 @@ int main(int argc, char *argv[])
 			standart_deviation,
 			rays / duration / 1000000.0f,
 			average_jumps / (float) total_frames / (float) width_pixels / (float) height_pixels,
-			print_internal_nodes().c_str(),
-			print_memory_usage().c_str(),
-			print_dimensionality().c_str()
+			//			print_internal_nodes().c_str(),
+			print_memory_usage().c_str()
+			//			print_dimensionality().c_str()
 		);
 
 		fclose(fptr);

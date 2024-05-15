@@ -1,2 +1,7 @@
-all:
-    g++ -O3 -g -o main main.cpp SimplexNoise.cpp `sdl2-config --cflags --libs` -I/home/zso/Dev/k3-lidar/include -I/home/zso/Dev/k3-lidar/external  -I/home/zso/Dev/k3-lidar/external/sdsl-lite/include -I/home/zso/Dev/k3-lidar/external/LAStools/LASzip/src -I/home/zso/Dev/k3-lidar/external/malloc_count/include -L/home/zso/lib/ -L/home/zso/Dev/k3-lidar/external/LAStools/LASlib/lib -lsdsl -lLASlib
+CC=g++
+SDSL-LITE-FLDR=/home/jose
+CFLAGS=-O3
+
+render: main.cpp SimplexNoise.cpp
+	$(CC) $(CFLAGS) -o render main.cpp SimplexNoise.cpp `sdl2-config --cflags --libs` -I./k3-lidar-lite -I$(SDSL-LITE-FLDR)/include  -L$(SDSL-LITE-FLDR)/lib -lsdsl
+
